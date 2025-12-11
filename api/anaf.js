@@ -1,5 +1,5 @@
 export default async function handler(req, res) {
-  // CORS - permite site-ului tău să apeleze API-ul Vercel
+  // CORS
   res.setHeader("Access-Control-Allow-Origin", "https://clone.medaz.ro");
   res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type");
@@ -9,19 +9,29 @@ export default async function handler(req, res) {
   }
 
   try {
-    const { cui } = req.body;
+    // Body parsing corect
+    const body = typeof req.body === "string" ? JSON.parse(req.body) : req.body;
+    const cui = body.cui;
 
-    const r = await fetch(`https://api.openapi.ro/api/firm/${cui}`, {
+    if (!cui) {
+      return res.status(400).json({ error: "Missing CUI" });
+    }
+
+    // 🔥 OpenAPI folosește GET, nu POST!
+    const openApiUrl = `https://api.openapi.ro/api/firm/${cui}`;
+
+    const apiResponse = await fetch(openApiUrl, {
+      method: "GET",
       headers: {
         "Authorization": `Bearer ${process.env.OPENAPI_KEY}`,
         "Accept": "application/json"
       }
     });
 
-    const data = await r.text();
+    const text = await apiResponse.text();
 
     res.setHeader("Content-Type", "application/json");
-    return res.status(r.status).send(data);
+    return res.status(apiResponse.status).send(text);
 
   } catch (e) {
     return res.status(500).json({
